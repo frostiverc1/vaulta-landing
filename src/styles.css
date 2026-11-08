@@ -1,4 +1,4 @@
-/* Vaulta landing — Apple HIG-informed: system type, generous space, 44pt targets,
+/* {{NAME}} landing — Apple HIG-informed: system type, generous space, 44pt targets,
    adaptive light/dark, reduced-motion, visible focus. Crimson is reserved for Shred. */
 
 :root {
@@ -309,3 +309,7 @@ ul { padding: 0; list-style: none; }
   *, *::before, *::after { animation: none !important; transition-duration: .01ms !important; transition-delay: 0s !important; }
   .js .reveal { opacity: 1; transform: none; }
 }
+
+/* 404 */
+.notfound { min-height: 100vh; display: grid; place-content: center; justify-items: center; gap: 12px; text-align: center; padding: 24px 16px; }
+.notfound .btn { margin-top: 12px; }

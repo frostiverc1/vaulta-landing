@@ -17,7 +17,20 @@
   links.addEventListener("click", (e) => { if (e.target.closest("a")) setNav(false); });
   document.addEventListener("keydown", (e) => { if (e.key === "Escape") setNav(false); });
 
-  // Review-window demo
+  // Security brief: highlight the current section in the table of contents
+  const tocLinks = [...document.querySelectorAll(".toc a")];
+  if (tocLinks.length && "IntersectionObserver" in window) {
+    const byId = new Map(tocLinks.map((a) => [a.getAttribute("href").slice(1), a]));
+    const spy = new IntersectionObserver((entries) => entries.forEach((e) => {
+      if (!e.isIntersecting) return;
+      tocLinks.forEach((a) => a.removeAttribute("aria-current"));
+      byId.get(e.target.id)?.setAttribute("aria-current", "true");
+    }), { rootMargin: "-20% 0px -70% 0px" });
+    byId.forEach((_, id) => { const el = document.getElementById(id); if (el) spy.observe(el); });
+  }
+
+  // Review-window demo (home page only)
+  if (!$("winBody")) return;
   const body = $("winBody"), btn = $("shredBtn"), toast = $("toast"), hint = $("footHint");
   const countdown = $("countdown"), banner = $("banner");
   const START = 14 * 60 + 59;

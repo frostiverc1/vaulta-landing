@@ -1,0 +1,378 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <title>Security brief for CISOs — {{NAME}}</title>
+  <meta name="description" content="How {{NAME}} is built, what it guarantees, how to verify it, and what it does not cover. Architecture, data flows, shred model, attestation receipts, supply chain and known limits.">
+  <meta name="color-scheme" content="light dark">
+  <meta name="theme-color" content="#000000" media="(prefers-color-scheme: dark)">
+  <meta name="theme-color" content="#f5f5f7" media="(prefers-color-scheme: light)">
+  <meta property="og:title" content="Security brief for CISOs — {{NAME}}">
+  <meta property="og:description" content="Architecture, data flows, attestation receipts, supply chain and known limits, stated plainly.">
+  <meta property="og:type" content="website">
+  <meta property="og:site_name" content="{{NAME}}">
+  <meta name="twitter:card" content="summary_large_image">
+  <!--if:url-->
+  <link rel="canonical" href="{{URL}}/security/">
+  <meta property="og:url" content="{{URL}}/security/">
+  <meta property="og:image" content="{{URL}}/assets/og.png">
+  <meta name="twitter:image" content="{{URL}}/assets/og.png">
+  <!--/if:url-->
+  <link rel="icon" href="/favicon.svg" type="image/svg+xml">
+  <link rel="apple-touch-icon" href="/assets/apple-touch-icon.png">
+  <link rel="stylesheet" href="/styles.css">
+  <link rel="stylesheet" href="/security.css">
+</head>
+<body>
+  <a class="skip" href="#main">Skip to content</a>
+
+  <header class="nav" id="nav">
+    <nav class="nav__inner" aria-label="Primary">
+      <a class="nav__brand" href="/" aria-label="{{NAME}} home">
+        <img src="/assets/mark.svg" alt="" width="22" height="19">
+        <span>{{NAME}}</span>
+      </a>
+      <ul class="nav__links" id="navLinks">
+        <li><a href="/#how">How it works</a></li>
+        <li><a href="/#security">Security</a></li>
+        <li><a href="/security/" aria-current="page">Security brief</a></li>
+        <li><a href="/#enterprise">Enterprise</a></li>
+        <li><a href="/#specs">Tech specs</a></li>
+      </ul>
+      <a class="btn btn--small" href="#review">Request review pack</a>
+      <button class="nav__toggle" id="navToggle" aria-label="Menu" aria-expanded="false" aria-controls="navLinks">
+        <span></span><span></span>
+      </button>
+    </nav>
+  </header>
+
+  <main id="main">
+    <header class="brief-hero">
+      <div class="container container--wide">
+        <p class="eyebrow">Security brief</p>
+        <h1 class="headline">Built to be audited, not just trusted.</h1>
+        <p class="lede lede--muted">For CISOs, security architects and risk teams. This page states what {{NAME}} guarantees, how each guarantee is enforced, how you can check it, and what it does not cover.</p>
+        <p class="brief-meta">Last reviewed 8 November 2026. Reflects the current build, not the roadmap. Claims name the evidence behind them.</p>
+        <div class="legend" aria-label="Status key">
+          <span><span class="chip chip--ok">Verified</span> observed end to end on a real run</span>
+          <span><span class="chip chip--test">Unit-tested</span> covered by automated tests</span>
+          <span><span class="chip chip--open">Open</span> not done or not yet verified</span>
+        </div>
+      </div>
+    </header>
+
+    <div class="container container--wide doc">
+      <nav class="toc" aria-label="On this page">
+        <p class="toc__label">On this page</p>
+        <ol>
+          <li><a href="#summary">Summary</a></li>
+          <li><a href="#architecture">Architecture</a></li>
+          <li><a href="#data">Data flows</a></li>
+          <li><a href="#shred">What shred covers</a></li>
+          <li><a href="#receipt">Attestation receipt</a></li>
+          <li><a href="#supply">Supply chain</a></li>
+          <li><a href="#endpoint">Endpoint footprint</a></li>
+          <li><a href="#limits">Known limits</a></li>
+          <li><a href="#review">Review pack</a></li>
+        </ol>
+      </nav>
+
+      <div class="prose">
+        <!-- 1 -->
+        <section id="summary">
+          <h2>The short version</h2>
+          <p>Five statements a security reviewer can test. Each is expanded below with its mechanism and its limits.</p>
+          <div class="points">
+            <div class="point"><b>One process touches the meeting, and it has no network.</b><p>Audio, transcripts and the memo model run in a short-lived, sandboxed session process. Its sandbox profile has no network entitlement, so the OS refuses its sockets. <span class="chip chip--ok">Verified</span></p></div>
+            <div class="point"><b>Verbatim data lives in an encrypted, pinned vault.</b><p>Per-record AES-256-GCM, with the key and data held in <code>mlock</code>ed memory. It is zeroed and read back to confirm at approval, timeout or sleep. <span class="chip chip--test">Unit-tested</span></p></div>
+            <div class="point"><b>The process then exits.</b><p>When a process exits, the kernel zeroes its pages before reuse. That sweeps up copies the vault cannot reach. <span class="chip chip--ok">Verified</span></p></div>
+            <div class="point"><b>Every session ends with a signed receipt.</b><p>A non-exportable Secure Enclave P-256 key signs it. The backend refuses software-signed receipts by default. <span class="chip chip--ok">Verified</span></p></div>
+            <div class="point"><b>We list what is not done.</b><p>Notarization, a production model-signing key, SSO and several live-testing gaps are open. They are in <a class="link-inline" href="#limits">Known limits</a>, not buried.</p></div>
+          </div>
+        </section>
+
+        <!-- 2 -->
+        <section id="architecture">
+          <h2>Architecture: two processes, one boundary</h2>
+          <p>The client is split so that the only code that ever sees verbatim audio or text cannot reach the network, and is destroyed when its job is done.</p>
+
+          <div class="arch" role="group" aria-label="Control process and session process">
+            <div class="proc">
+              <span class="proc__tag">Long-lived · menu bar app</span>
+              <h3>Control process</h3>
+              <ul>
+                <li>Starts and kills session processes.</li>
+                <li>Owns all network traffic, policy, enrollment and receipt signing.</li>
+                <li>Stores approved memos (encrypted, one file each).</li>
+                <li><strong>Never receives audio or verbatim text.</strong> It receives the approved, sanitized memo, a shred report and model hashes.</li>
+                <li><strong>Not sandboxed.</strong> See <a class="link-inline" href="#limits">Known limits</a>.</li>
+              </ul>
+              <span class="chip chip--ok">Network: yes, HTTPS to the control plane</span>
+            </div>
+            <div class="link-col" aria-hidden="true">
+              <svg viewBox="0 0 120 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M4 12h112M12 6l-8 6 8 6M108 6l8 6-8 6"/></svg>
+              <span><b>Framed JSON over inherited pipes</b></span>
+              <span>4 MB frame cap, version and sequence checked</span>
+            </div>
+            <div class="proc proc--session">
+              <span class="proc__tag">One per meeting · sandboxed</span>
+              <h3>Session process</h3>
+              <ul>
+                <li>Capture, voice detection, speech recognition, memo model, numeric check, and the Review window.</li>
+                <li>Holds the vault. Verbatim text never leaves this process.</li>
+                <li>Sandbox entitlements: <code>app-sandbox</code> and <code>device.audio-input</code>. Nothing else.</li>
+                <li>Exits about 1.5 s after reporting the shred. Shreds and exits if the control process disappears.</li>
+              </ul>
+              <span class="chip chip--ok">Network: none. Sockets refused (EPERM)</span>
+            </div>
+          </div>
+
+          <div class="arch-foot">
+            <div class="dest"><b>The control plane</b>Receives enrollment, policy and signed receipts. No audio, no transcripts.</div>
+            <div class="dest"><b>Model host (optional)</b>Only if you do not pre-stage models. MDM pre-staging or the offline install kit removes this connection.</div>
+          </div>
+
+          <h3>Defence in depth on egress</h3>
+          <ul class="list">
+            <li><strong>OS sandbox.</strong> The session process has no network entitlement. We observed a sandboxed session launched by the control process get <code>EPERM</code> on connect, while the same code unsandboxed reached the internet. <span class="chip chip--ok">Verified</span></li>
+            <li><strong>Socket watchdog.</strong> An independent check polls the session's descriptor table every 500 ms while the vault holds data and records any IPv4 or IPv6 socket (loopback included, deliberately strict). <span class="chip chip--test">Unit-tested</span></li>
+            <li><strong>Build-time boundary.</strong> A test fails the build if session-side source uses a network API or depends on the networking module. It cannot inspect third-party dependencies; see <a class="link-inline" href="#supply">Supply chain</a>. <span class="chip chip--test">Unit-tested</span></li>
+          </ul>
+        </section>
+
+        <!-- 3 -->
+        <section id="data">
+          <h2>Where your data goes</h2>
+          <p>Every category of data the product touches, where it lives, and whether it leaves the Mac.</p>
+          <div class="tablewrap" role="region" aria-label="Data flow table" tabindex="0">
+            <table>
+              <thead><tr><th scope="col">Data</th><th scope="col">Where it lives</th><th scope="col">Leaves the Mac?</th></tr></thead>
+              <tbody>
+                <tr><th scope="row">Raw audio</th><td>Session process memory, sealed into the vault within milliseconds.</td><td><strong>No.</strong> The session process cannot open sockets.</td></tr>
+                <tr><th scope="row">Verbatim transcript</th><td>The vault, and the Review window inside the session process.</td><td><strong>No.</strong></td></tr>
+                <tr><th scope="row">Approved memo</th><td>Control process. AES-256-GCM file per memo with its own key, wrapped to a Secure Enclave key.</td><td>Only if the user exports it (Markdown or Word).</td></tr>
+                <tr><th scope="row">Signed receipt</th><td>Written to disk first, then uploaded to the control plane. Offline receipts wait in an outbox.</td><td><strong>Yes, metadata only.</strong> Session ID, device hardware UUID, workspace code name, timestamps, model hashes, verdicts.</td></tr>
+                <tr><th scope="row">Enrollment and policy</th><td>The control plane.</td><td>Yes. Account and policy metadata.</td></tr>
+                <tr><th scope="row">Logs</th><td>Local. Counts and timings only, never transcript text.</td><td>No.</td></tr>
+                <tr><th scope="row">Keys</th><td>Secure Enclave blobs. Useless on another Mac.</td><td>No.</td></tr>
+              </tbody>
+            </table>
+          </div>
+          <p>Receipts carry the device hardware UUID and a workspace code name. Treat both as identifiers when you classify the control plane's data.</p>
+        </section>
+
+        <!-- 4 -->
+        <section id="shred">
+          <h2>What “shred” does and does not cover</h2>
+          <p>This is the question opposing counsel and your auditors will ask, so we answer it first. The vault’s guarantees are narrow and tested. Copies made elsewhere in the process are handled by process exit.</p>
+
+          <h3>What the vault guarantees</h3>
+          <div class="tablewrap" role="region" aria-label="Vault guarantees" tabindex="0">
+            <table>
+              <thead><tr><th scope="col">Property</th><th scope="col">Mechanism</th><th scope="col">Status</th></tr></thead>
+              <tbody>
+                <tr><th scope="row">Not written to swap or a core dump</th><td><code>mlock</code> plus a zero core-size limit. Fails closed if either fails. Kernel-reported wired pages are checked.</td><td><span class="chip chip--test">Unit-tested</span></td></tr>
+                <tr><th scope="row">No plaintext in pinned pages</th><td>Per-record AES-256-GCM. The key lives only in a pinned page.</td><td><span class="chip chip--test">Unit-tested</span></td></tr>
+                <tr><th scope="row">Ciphertext cannot be swapped or re-pointed</th><td>Segment, tag, timestamp and sequence are bound as authenticated data.</td><td><span class="chip chip--test">Unit-tested</span></td></tr>
+                <tr><th scope="row">No nonce reuse</th><td>4 random bytes plus a 64-bit counter, per vault.</td><td><span class="chip chip--test">Unit-tested</span></td></tr>
+                <tr><th scope="row">Shred zeroes key and data, then verifies</th><td>Key first, then <code>memset_s</code>, then a read-back, then unlock.</td><td><span class="chip chip--test">Unit-tested</span></td></tr>
+                <tr><th scope="row">Safe under concurrent writers</th><td>One lock serializes writes and shred.</td><td><span class="chip chip--test">Unit-tested</span></td></tr>
+                <tr><th scope="row">Timeout, sleep, power-off and abort all shred</th><td>Session lifecycle. Only an explicit approval records <code>human_attorney_reviewed</code>. The timer is monotonic, so changing the system clock does not extend it.</td><td><span class="chip chip--test">Unit-tested</span> <span class="chip chip--open">Not run live</span></td></tr>
+              </tbody>
+            </table>
+          </div>
+
+          <h3>Copies that exist outside the vault</h3>
+          <ul class="list">
+            <li><strong>Audio in flight.</strong> CoreAudio buffers, the resampler output and a small frame accumulator live in process memory for milliseconds before the vault seals them. Freed heap is not zeroed.</li>
+            <li><strong>Decrypted reads.</strong> CryptoKit decrypts into ordinary memory, so each decrypted record exists there until reused.</li>
+            <li><strong>Model working memory.</strong> Speech-model tensors, the memo model’s prompt and cache, and every string made from transcript text.</li>
+            <li><strong>System audio services.</strong> <code>coreaudiod</code> and the audio HAL hold buffers outside our process and outside our control.</li>
+            <li><strong>Swap and hibernation.</strong> Unpinned copies can be paged out. macOS encrypts swap by default, which limits exposure but is not “never written”. <code>mlock</code> does not exclude pages from a hibernation image, which is why a sleep hook shreds. Whether that hook always finishes before the image is written has not been measured.</li>
+          </ul>
+
+          <div class="callout">
+            <b>How the process boundary closes most of this</b>
+            <p>The first three copies live in the session process. When it exits, the kernel zeroes its pages before reuse, including copies we cannot see or enumerate. That is why the session is a separate, killed process rather than a promise to scrub every buffer.</p>
+          </div>
+
+          <div class="callout callout--claim">
+            <b>The claim we make</b>
+            <p>Raw audio and verbatim transcripts are held only in encrypted, RAM-pinned buffers. Those buffers and their key are zeroed and verified when the memo is approved, when the review timer expires, or when the Mac goes to sleep. The process that handled the meeting is then terminated.</p>
+          </div>
+          <div class="callout callout--warn">
+            <b>The claim we do not make</b>
+            <p>“No trace of the conversation remains anywhere.” Hibernation timing is unmeasured and system audio services are outside our process, so we do not assert it, and our receipts do not either.</p>
+          </div>
+        </section>
+
+        <!-- 5 -->
+        <section id="receipt">
+          <h2>The attestation receipt</h2>
+          <p>After every session the control process builds a receipt, signs it with a non-exportable Secure Enclave P-256 key, and uploads it. The backend verifies the signature before counting the session.</p>
+
+          <pre class="code" aria-label="Example receipt, illustrative values"><span class="c">// illustrative values · schema 2.0</span>
+{
+  <span class="k">"receipt_version"</span>: <span class="s">"2.0"</span>,
+  <span class="k">"session_id"</span>: <span class="s">"3E5B…9C1A"</span>,
+  <span class="k">"device_hardware_uuid"</span>: <span class="s">"…"</span>,
+  <span class="k">"workspace_code_name"</span>: <span class="s">"PROJECT_X"</span>,
+  <span class="k">"capture_started_at"</span>: <span class="s">"2026-11-06T14:07:41Z"</span>,
+  <span class="k">"ram_shredded_at"</span>: <span class="s">"2026-11-06T14:22:09Z"</span>,
+  <span class="k">"asr_model_hash"</span>: <span class="s">"e4740f…"</span>,
+  <span class="k">"slm_model_hash"</span>: <span class="s">"37e644…"</span>,
+  <span class="k">"internet_sockets_observed"</span>: <span class="n">0</span>,
+  <span class="k">"egress_verdict"</span>: <span class="s">"none_observed"</span>,
+  <span class="k">"memset_zero_verified"</span>: <span class="n">true</span>,
+  <span class="k">"human_attorney_reviewed"</span>: <span class="n">true</span>,
+  <span class="k">"shred_cause"</span>: <span class="s">"approved"</span>,
+  <span class="k">"session_process_exited"</span>: <span class="n">true</span>,
+  <span class="k">"signer"</span>: <span class="s">"secure_enclave"</span>
+}</pre>
+
+          <h3>How it is signed and checked</h3>
+          <ul class="list">
+            <li><strong>Signature.</strong> ECDSA P-256 over deterministic bytes: sorted keys, no whitespace, ISO-8601 UTC seconds. Formatting or key order cannot change a verdict. The receipt carries a key ID, the first 16 hex characters of the SHA-256 of the public key.</li>
+            <li><strong>“Clean” has a precise meaning.</strong> No internet socket observed, vault verified zero, <em>and</em> the OS confirmed the session process exited. A session that crashed before reporting a shred gets an honest receipt that is never clean.</li>
+            <li><strong>Backend policy.</strong> Software-signed receipts, which are development only, are refused by default. Verified end to end against the real backend: valid upload, duplicate upload, tampered body (403), software key (403), unknown key (401), and a receipt for another Mac (quarantined). Signature verified independently in Python. <span class="chip chip--ok">Verified</span></li>
+          </ul>
+
+          <div class="callout callout--warn">
+            <b>What the receipt does not say</b>
+            <p><strong>It does not report bytes.</strong> macOS exposes no per-process byte counter without private API, so we record whether an internet socket ever existed rather than claim a byte count we did not measure.
+            <code>memset_zero_verified</code> means the vault was verified zero, not that no copy exists anywhere. <code>human_attorney_reviewed</code> records an explicit approval, not the quality of the review.</p>
+          </div>
+        </section>
+
+        <!-- 6 -->
+        <section id="supply">
+          <h2>Supply chain and models</h2>
+          <p>Policy: permissive licenses only (MIT, Apache-2.0, BSD, ISC, OFL), US or EU-origin model weights, and every external artifact pinned to an exact version or commit. A full software bill of materials is part of the review pack.</p>
+
+          <h3>Models</h3>
+          <div class="tablewrap" role="region" aria-label="Model inventory" tabindex="0">
+            <table>
+              <thead><tr><th scope="col">Model</th><th scope="col">Role</th><th scope="col">Publisher</th><th scope="col">License</th><th scope="col">Size</th><th scope="col">Pinned to</th></tr></thead>
+              <tbody>
+                <tr><th scope="row">Whisper base.en</th><td>Speech to text (bundled)</td><td>OpenAI, Core ML build by Argmax</td><td>MIT</td><td>147 MB</td><td><code>0f63a780</code></td></tr>
+                <tr><th scope="row">Whisper large-v3-turbo</th><td>Speech to text (default when present)</td><td>OpenAI, Core ML build by Argmax</td><td>MIT</td><td>627 MB</td><td>weight-file SHA-256</td></tr>
+                <tr><th scope="row">Silero VAD v6.0.0</th><td>Voice activity</td><td>Silero, Core ML conversion by FluidInference</td><td>MIT</td><td>0.9 MB</td><td><code>b419383c</code></td></tr>
+                <tr><th scope="row">Phi-3.5-mini-instruct, 4-bit</th><td>Memo drafting</td><td>Microsoft, MLX conversion by mlx-community</td><td>MIT</td><td>2.15 GB</td><td><code>7b2052fd</code></td></tr>
+              </tbody>
+            </table>
+          </div>
+
+          <h3>Code dependencies that matter to a reviewer</h3>
+          <div class="tablewrap tablewrap--tight" role="region" aria-label="Dependencies" tabindex="0">
+            <table>
+              <thead><tr><th scope="col">Component</th><th scope="col">Version</th><th scope="col">License</th><th scope="col">Note</th></tr></thead>
+              <tbody>
+                <tr><th scope="row">WhisperKit</th><td>1.1.1 (exact)</td><td>MIT</td><td>Contains model-download code. See below.</td></tr>
+                <tr><th scope="row">mlx-swift-lm / mlx-swift</th><td>3.32.3 / 0.32.3</td><td>MIT</td><td>Source audited: no network code in the three libraries we link. mlx-swift contains distributed-training TCP backends we never call.</td></tr>
+                <tr><th scope="row">swift-transformers</th><td>1.4.0 (exact)</td><td>Apache-2.0</td><td>Links a Hugging Face Hub client through swift-huggingface. See below.</td></tr>
+              </tbody>
+            </table>
+          </div>
+
+          <div class="callout callout--warn">
+            <b>What we found, and what we did about it</b>
+            <p>WhisperKit and swift-transformers both link Hugging Face download code, and the dependency graph cannot be trimmed. We treat that as a finding, not a footnote. Mitigations, in order: model loading is told not to download, points at explicit local folders, and refuses to start if a required file is missing (tested); the session sandbox has no network entitlement, so an unintended call fails; and a boundary test keeps our own session-side code free of network APIs. One full session on the real control path recorded zero internet sockets. We have not yet repeated that across a broad set of runs.</p>
+          </div>
+
+          <h3>How models reach the Mac</h3>
+          <ul class="list">
+            <li><strong>Signed manifest.</strong> Downloads are checked against an Ed25519-signed manifest using pinned public keys, with SHA-256 verified before a file becomes visible at its final path. The manifest sequence number is persisted, so an old manifest cannot be replayed. <span class="chip chip--test">Unit-tested</span></li>
+            <li><strong>No download at all.</strong> Models can be pre-staged by MDM, or installed from an offline kit that carries a SHA-256 list of every file.</li>
+            <li><strong>Production signing key.</strong> None has been issued yet, so none is built into the client. <span class="chip chip--open">Open</span></li>
+            <li><strong>Third-party conversions.</strong> The Silero Core ML and Phi MLX builds come from third-party repositories. We intend to reproduce both conversions from the upstream models before release, so the build does not depend on those repositories staying unchanged. <span class="chip chip--open">Open</span></li>
+            <li><strong>Receipt hash coverage.</strong> The model hashes in receipts cover one large weight file per model. A per-file manifest is still to do. <span class="chip chip--open">Open</span></li>
+          </ul>
+        </section>
+
+        <!-- 7 -->
+        <section id="endpoint">
+          <h2>Endpoint footprint</h2>
+          <p>What a deployment looks like to your endpoint and network teams.</p>
+          <ul class="list">
+            <li><strong>Hardware and OS.</strong> Apple silicon, macOS 14.2 or later. Intel Macs are not supported. FileVault is expected on.</li>
+            <li><strong>Permissions.</strong> Microphone and system-audio capture, requested once. No virtual audio driver, no meeting bot joining the call, and no screen-recording permission.</li>
+            <li><strong>Network.</strong> HTTPS to the control plane you configure. Enrollment links are accepted over HTTPS only and ask the user to confirm the server first. A model host only if you do not pre-stage.</li>
+            <li><strong>Preflight.</strong> A built-in check prints pass or fail for OS, hardware, Secure Enclave, models and control plane. It never touches audio.</li>
+          </ul>
+          <div class="tablewrap tablewrap--tight" role="region" aria-label="Files on disk" tabindex="0">
+            <table>
+              <caption>What is written to disk</caption>
+              <thead><tr><th scope="col">What</th><th scope="col">Where</th></tr></thead>
+              <tbody>
+                <tr><th scope="row">App</th><td><code>/Applications/{{NAME}}.app</code>, with the session process as a helper inside it</td></tr>
+                <tr><th scope="row">Models (read-only)</th><td><code>/Library/Application Support/{{NAME}}/Models</code></td></tr>
+                <tr><th scope="row">Approved memos</th><td><code>~/Library/Application Support/{{NAME}}/Memos</code>, encrypted, one file each</td></tr>
+                <tr><th scope="row">Receipts and outbox</th><td><code>~/Library/Application Support/{{NAME}}/Receipts</code> and <code>Outbox</code></td></tr>
+                <tr><th scope="row">Logs</th><td><code>~/Library/Application Support/{{NAME}}/Logs</code>, counts and timings only</td></tr>
+                <tr><th scope="row">Keys</th><td><code>~/Library/Application Support/{{NAME}}/Keys</code>, Secure Enclave blobs</td></tr>
+              </tbody>
+            </table>
+          </div>
+          <p>Deleting the keys makes every stored memo permanently unreadable. That is by design, and it is your offboarding lever.</p>
+        </section>
+
+        <!-- 8 -->
+        <section id="limits">
+          <h2>Known limits and open items</h2>
+          <p>We would rather you read these here than discover them in a pilot.</p>
+
+          <h3>Limits of the design</h3>
+          <div class="limits">
+            <div class="limit"><span class="chip chip--open">Design</span><div><b>The control process is not sandboxed.</b><p>By design it never receives audio or verbatim text, but it is long-lived and holds the network connection and the memo store.</p></div></div>
+            <div class="limit"><span class="chip chip--open">Design</span><div><b>Other processes reading our memory is out of scope for now.</b><p>Defending against it needs hardened runtime and library validation, which need a Developer ID. Debugger attach is not blocked in development builds; deny-attach is for release builds.</p></div></div>
+            <div class="limit"><span class="chip chip--open">Design</span><div><b>Approval does not prove careful review.</b><p>The click is recorded in the receipt. It is a product control, not a technical one.</p></div></div>
+          </div>
+
+          <h3>Not done or not yet verified</h3>
+          <div class="limits">
+            <div class="limit"><span class="chip chip--open">Open</span><div><b>Signing and notarization.</b><p>Current builds are ad-hoc signed. A Mac that only runs Developer ID software will refuse them until that is done.</p></div></div>
+            <div class="limit"><span class="chip chip--open">Open</span><div><b>Single sign-on.</b><p>Sign-in through an identity provider such as Okta or Entra is not implemented yet.</p></div></div>
+            <div class="limit"><span class="chip chip--open">Open</span><div><b>Live meeting capture.</b><p>Zoom, Teams and Meet capture has had one live test. Run a dry run before relying on it. Remote participants appear as one speaker.</p></div></div>
+            <div class="limit"><span class="chip chip--open">Open</span><div><b>Screen-share cloak.</b><p>The Review window opts out of screen sharing at the window level. That is tested on a real window, but not yet against Zoom or QuickTime capture.</p></div></div>
+            <div class="limit"><span class="chip chip--open">Open</span><div><b>Crash and kill handling.</b><p>Tested with a stand-in session. Killing the real app mid-meeting, and the review timeout and sleep paths in a live two-process run, are still to be exercised.</p></div></div>
+            <div class="limit"><span class="chip chip--open">Open</span><div><b>Key hand-off across app updates.</b><p>A re-signed app may be unable to reuse a Secure Enclave key made by a differently signed build. Unverified with real certificates.</p></div></div>
+            <div class="limit"><span class="chip chip--open">Open</span><div><b>Certifications and third-party assessment.</b><p>None are claimed on this page.</p></div></div>
+          </div>
+        </section>
+
+        <!-- 9 -->
+        <section id="review">
+          <h2>Request the review pack</h2>
+          <p>Bring this to your security team with the evidence behind it.</p>
+          <div class="pack">
+            <ul class="list">
+              <li><strong>Threat model.</strong> Assets, guarantees with their tests, copies outside the vault, and residual risk.</li>
+              <li><strong>Software bill of materials.</strong> Every dependency and model, with versions, licenses, pinned commits and hashes.</li>
+              <li><strong>Architecture decision record.</strong> The session-process isolation decision, alternatives considered, and costs.</li>
+              <li><strong>A sample signed receipt</strong> from a real session, and a walkthrough of how to verify it.</li>
+            </ul>
+            <div class="cta-row cta-row--left">
+              <a class="btn" href="mailto:{{EMAIL}}?subject={{NAME_URL}}%20security%20review%20pack">Request the review pack</a>
+              <a class="link" href="mailto:{{EMAIL}}?subject={{NAME_URL}}%20security%20question">Ask a security question</a>
+            </div>
+          </div>
+          <p>To report a vulnerability, email {{EMAIL}} with the subject “{{NAME}} vulnerability”.</p>
+        </section>
+      </div>
+    </div>
+  </main>
+
+  <footer class="footer">
+    <div class="container">
+      <p class="footnote">This brief describes the {{NAME}} macOS client and control plane as built at the date above. It is not a warranty, a certification, or a substitute for your organization’s own security and legal review. Mac, Apple silicon and Secure Enclave are trademarks of Apple Inc. {{NAME}} is not affiliated with or endorsed by Apple.</p>
+      <div class="footer__row">
+        <span>© 2026 {{NAME}}. All rights reserved.</span>
+        <span class="footer__brand"><a href="/">Back to {{NAME}}</a></span>
+      </div>
+    </div>
+  </footer>
+
+  <script src="/main.js" defer></script>
+</body>
+</html>
