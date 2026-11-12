@@ -53,7 +53,7 @@
         <p class="eyebrow">Security brief</p>
         <h1 class="headline">Built to be audited, not just trusted.</h1>
         <p class="lede lede--muted">For CISOs, security architects and risk teams. This page states what {{NAME}} guarantees, how each guarantee is enforced, how you can check it, and what it does not cover.</p>
-        <p class="brief-meta">Last reviewed 8 November 2026. Reflects the current build, not the roadmap. Claims name the evidence behind them.</p>
+        <p class="brief-meta">Last reviewed 12 November 2026. Reflects the current build, not the roadmap. Claims name the evidence behind them.</p>
         <div class="legend" aria-label="Status key">
           <span><span class="chip chip--ok">Verified</span> observed end to end on a real run</span>
           <span><span class="chip chip--test">Unit-tested</span> covered by automated tests</span>
@@ -85,7 +85,7 @@
           <p>Five statements a security reviewer can test. Each is expanded below with its mechanism and its limits.</p>
           <div class="points">
             <div class="point"><b>One process touches the meeting, and it has no network.</b><p>Audio, transcripts and the memo model run in a short-lived, sandboxed session process. Its sandbox profile has no network entitlement, so the OS refuses its sockets. <span class="chip chip--ok">Verified</span></p></div>
-            <div class="point"><b>Verbatim data lives in an encrypted, pinned vault.</b><p>Per-record AES-256-GCM, with the key and data held in <code>mlock</code>ed memory. It is zeroed and read back to confirm at approval, timeout or sleep. <span class="chip chip--test">Unit-tested</span></p></div>
+            <div class="point"><b>Verbatim data lives in an encrypted, pinned vault.</b><p>Per-record AES-256-GCM, with the key and data held in <code>mlock</code>ed memory. It is zeroed and read back to confirm at approval, review timeout, sleep, quit, loss of the control link, or a termination signal. <span class="chip chip--test">Unit-tested</span></p></div>
             <div class="point"><b>The process then exits.</b><p>When a process exits, the kernel zeroes its pages before reuse. That sweeps up copies the vault cannot reach. <span class="chip chip--ok">Verified</span></p></div>
             <div class="point"><b>Every session ends with a signed receipt.</b><p>A non-exportable Secure Enclave P-256 key signs it. The backend refuses software-signed receipts by default. <span class="chip chip--ok">Verified</span></p></div>
             <div class="point"><b>We list what is not done.</b><p>Notarization, a production model-signing key, SSO and several live-testing gaps are open. They are in <a class="link-inline" href="#limits">Known limits</a>, not buried.</p></div>
@@ -136,7 +136,7 @@
           <h3>Defence in depth on egress</h3>
           <ul class="list">
             <li><strong>OS sandbox.</strong> The session process has no network entitlement. We observed a sandboxed session launched by the control process get <code>EPERM</code> on connect, while the same code unsandboxed reached the internet. <span class="chip chip--ok">Verified</span></li>
-            <li><strong>Socket watchdog.</strong> An independent check polls the session's descriptor table every 500 ms while the vault holds data and records any IPv4 or IPv6 socket (loopback included, deliberately strict). <span class="chip chip--test">Unit-tested</span></li>
+            <li><strong>Socket watchdog.</strong> An independent check polls the session's descriptor table every 500 ms while the vault holds data and records any IPv4 or IPv6 socket (loopback included, deliberately strict). It samples, so it sees sockets, not traffic: a socket opened and closed between two samples is stopped by the sandbox, not seen by the watchdog. The sandbox is the control; the watchdog is the second witness. <span class="chip chip--test">Unit-tested</span></li>
             <li><strong>Build-time boundary.</strong> A test fails the build if session-side source uses a network API or depends on the networking module. It cannot inspect third-party dependencies; see <a class="link-inline" href="#supply">Supply chain</a>. <span class="chip chip--test">Unit-tested</span></li>
           </ul>
         </section>
@@ -178,7 +178,9 @@
                 <tr><th scope="row">No nonce reuse</th><td>4 random bytes plus a 64-bit counter, per vault.</td><td><span class="chip chip--test">Unit-tested</span></td></tr>
                 <tr><th scope="row">Shred zeroes key and data, then verifies</th><td>Key first, then <code>memset_s</code>, then a read-back, then unlock.</td><td><span class="chip chip--test">Unit-tested</span></td></tr>
                 <tr><th scope="row">Safe under concurrent writers</th><td>One lock serializes writes and shred.</td><td><span class="chip chip--test">Unit-tested</span></td></tr>
-                <tr><th scope="row">Timeout, sleep, power-off and abort all shred</th><td>Session lifecycle. Only an explicit approval records <code>human_attorney_reviewed</code>. The timer is monotonic, so changing the system clock does not extend it.</td><td><span class="chip chip--test">Unit-tested</span> <span class="chip chip--open">Not run live</span></td></tr>
+                <tr><th scope="row">Timeout, sleep, power-off and abort all shred</th><td>Session lifecycle. Only an explicit approval records <code>human_attorney_reviewed</code>. The timer is monotonic, so changing the system clock does not extend it. Review timeout and a forced sleep were run live with the built app; power-off has not been.</td><td><span class="chip chip--test">Unit-tested</span> <span class="chip chip--ok">Verified</span></td></tr>
+                <tr><th scope="row">Termination signals shred first</th><td><code>SIGTERM</code>, <code>SIGINT</code>, <code>SIGHUP</code> and <code>SIGQUIT</code> zero and verify the vault, report the result, then exit. Run live during capture and during review. <code>SIGKILL</code> cannot be caught by any process: the kernel still zeroes the pages, and the receipt says the shred was not verified.</td><td><span class="chip chip--ok">Verified</span></td></tr>
+                <tr><th scope="row">Killed or crashed sessions get an honest receipt</th><td>Killing the real session during capture and during review was run live; each gave a receipt that is never clean, with the exit confirmed by the OS. If the control process is killed, the session shreds and exits within 1 s, and the next launch issues an aborted receipt.</td><td><span class="chip chip--ok">Verified</span></td></tr>
               </tbody>
             </table>
           </div>
@@ -189,7 +191,7 @@
             <li><strong>Decrypted reads.</strong> CryptoKit decrypts into ordinary memory, so each decrypted record exists there until reused.</li>
             <li><strong>Model working memory.</strong> Speech-model tensors, the memo model’s prompt and cache, and every string made from transcript text.</li>
             <li><strong>System audio services.</strong> <code>coreaudiod</code> and the audio HAL hold buffers outside our process and outside our control.</li>
-            <li><strong>Swap and hibernation.</strong> Unpinned copies can be paged out. macOS encrypts swap by default, which limits exposure but is not “never written”. <code>mlock</code> does not exclude pages from a hibernation image, which is why a sleep hook shreds. Whether that hook always finishes before the image is written has not been measured.</li>
+            <li><strong>Swap and hibernation.</strong> Unpinned copies can be paged out. macOS encrypts swap by default, which limits exposure but is not “never written”. <code>mlock</code> does not exclude pages from a hibernation image, which is why a sleep hook shreds. A forced sleep (<code>pmset sleepnow</code>) shredded and verified in a live run. Lid-close and a full hibernation image have not been tested, so we do not yet claim the hook always finishes before the image is written.</li>
           </ul>
 
           <div class="callout">
@@ -332,12 +334,19 @@
           <h3>Not done or not yet verified</h3>
           <div class="limits">
             <div class="limit"><span class="chip chip--open">Open</span><div><b>Signing and notarization.</b><p>Current builds are ad-hoc signed. A Mac that only runs Developer ID software will refuse them until that is done.</p></div></div>
-            <div class="limit"><span class="chip chip--open">Open</span><div><b>Single sign-on.</b><p>Sign-in through an identity provider such as Okta or Entra is not implemented yet.</p></div></div>
+            <div class="limit"><span class="chip chip--open">Open</span><div><b>Single sign-on.</b><p>The control plane accepts OpenID Connect ID tokens from Okta and Entra. The Mac app does not yet run that sign-in, so devices enroll with a one-time link. SAML-only identity providers are not supported.</p></div></div>
             <div class="limit"><span class="chip chip--open">Open</span><div><b>Live meeting capture.</b><p>Zoom, Teams and Meet capture has had one live test. Run a dry run before relying on it. Remote participants appear as one speaker.</p></div></div>
             <div class="limit"><span class="chip chip--open">Open</span><div><b>Screen-share cloak.</b><p>The Review window opts out of screen sharing at the window level. That is tested on a real window, but not yet against Zoom or QuickTime capture.</p></div></div>
-            <div class="limit"><span class="chip chip--open">Open</span><div><b>Crash and kill handling.</b><p>Tested with a stand-in session. Killing the real app mid-meeting, and the review timeout and sleep paths in a live two-process run, are still to be exercised.</p></div></div>
             <div class="limit"><span class="chip chip--open">Open</span><div><b>Key hand-off across app updates.</b><p>A re-signed app may be unable to reuse a Secure Enclave key made by a differently signed build. Unverified with real certificates.</p></div></div>
             <div class="limit"><span class="chip chip--open">Open</span><div><b>Certifications and third-party assessment.</b><p>None are claimed on this page.</p></div></div>
+          </div>
+
+          <h3>Control plane</h3>
+          <div class="limits">
+            <div class="limit"><span class="chip chip--open">Open</span><div><b>Deprovisioning.</b><p>Removing someone from your identity provider does not revoke their Mac. An admin revokes the device in the console.</p></div></div>
+            <div class="limit"><span class="chip chip--open">Open</span><div><b>Production readiness.</b><p>Tested on SQLite. PostgreSQL is supported in code but not yet run. Rate limiting is per server process, so use your proxy&rsquo;s limiter too. TLS ends at your reverse proxy.</p></div></div>
+            <div class="limit"><span class="chip chip--open">Open</span><div><b>Admin audit log.</b><p>Admin actions are not yet logged.</p></div></div>
+            <div class="limit"><span class="chip chip--open">Open</span><div><b>Audit export signature.</b><p>The PDF carries an Ed25519 signature anyone can check offline with our published key. It is not a PAdES signature, so Acrobat shows no &ldquo;signed&rdquo; badge.</p></div></div>
           </div>
         </section>
 
