@@ -73,6 +73,7 @@
           <li><a href="#receipt">Attestation receipt</a></li>
           <li><a href="#supply">Supply chain</a></li>
           <li><a href="#endpoint">Endpoint footprint</a></li>
+          <li><a href="#control-plane">Control plane</a></li>
           <li><a href="#limits">Known limits</a></li>
           <li><a href="#review">Review pack</a></li>
         </ol>
@@ -88,7 +89,7 @@
             <div class="point"><b>Verbatim data lives in an encrypted, pinned vault.</b><p>Per-record AES-256-GCM, with the key and data held in <code>mlock</code>ed memory. It is zeroed and read back to confirm at approval, review timeout, sleep, quit, loss of the control link, or a termination signal. <span class="chip chip--test">Unit-tested</span></p></div>
             <div class="point"><b>The process then exits.</b><p>When a process exits, the kernel zeroes its pages before reuse. That sweeps up copies the vault cannot reach. <span class="chip chip--ok">Verified</span></p></div>
             <div class="point"><b>Every session ends with a signed receipt.</b><p>A non-exportable Secure Enclave P-256 key signs it. The backend refuses software-signed receipts by default. <span class="chip chip--ok">Verified</span></p></div>
-            <div class="point"><b>We list what is not done.</b><p>Notarization, a production model-signing key, SSO and several live-testing gaps are open. They are in <a class="link-inline" href="#limits">Known limits</a>, not buried.</p></div>
+            <div class="point"><b>We list what is not done.</b><p>Notarization, a production model-signing key, single sign-on from the Mac app and several live-testing gaps are open. They are in <a class="link-inline" href="#limits">Known limits</a>, not buried.</p></div>
           </div>
         </section>
 
@@ -129,7 +130,7 @@
           </div>
 
           <div class="arch-foot">
-            <div class="dest"><b>The control plane</b>Receives enrollment, policy and signed receipts. No audio, no transcripts.</div>
+            <div class="dest"><b>The control plane</b>Receives enrollment, policy and signed receipts, plus user status from your identity provider if you connect it. No audio, no transcripts.</div>
             <div class="dest"><b>Model host (optional)</b>Only if you do not pre-stage models. MDM pre-staging or the offline install kit removes this connection.</div>
           </div>
 
@@ -154,6 +155,8 @@
                 <tr><th scope="row">Approved memo</th><td>Control process. AES-256-GCM file per memo with its own key, wrapped to a Secure Enclave key.</td><td>Only if the user exports it (Markdown or Word).</td></tr>
                 <tr><th scope="row">Signed receipt</th><td>Written to disk first, then uploaded to the control plane. Offline receipts wait in an outbox.</td><td><strong>Yes, metadata only.</strong> Session ID, device hardware UUID, workspace code name, timestamps, model hashes, verdicts.</td></tr>
                 <tr><th scope="row">Enrollment and policy</th><td>The control plane.</td><td>Yes. Account and policy metadata.</td></tr>
+                <tr><th scope="row">Directory status</th><td>The control plane, pushed by your identity provider over SCIM if you connect it: user name, email addresses, display name, external ID, active or not.</td><td>Not from the Mac. It comes from your identity provider.</td></tr>
+                <tr><th scope="row">Admin audit log</th><td>The control plane. Who changed what, when and from which address. Never tokens or keys.</td><td>Not from the Mac. A server-side record of admin and SCIM actions.</td></tr>
                 <tr><th scope="row">Logs</th><td>Local. Counts and timings only, never transcript text.</td><td>No.</td></tr>
                 <tr><th scope="row">Keys</th><td>Secure Enclave blobs. Useless on another Mac.</td><td>No.</td></tr>
               </tbody>
@@ -320,6 +323,21 @@
         </section>
 
         <!-- 8 -->
+        <section id="control-plane">
+          <h2>Control plane: who can change what, and the record of it</h2>
+          <p>The control plane holds org policy, device public keys, signed receipts and the audit log. These are the controls around it.</p>
+          <ul class="list">
+            <li><strong>Leavers lose access automatically.</strong> Connect Okta or Entra over SCIM 2.0. When your identity provider deactivates or deletes someone, every Mac enrolled under their email is revoked in the same transaction. Their unused enrollment links stop working, and they cannot enroll again until they are reactivated. <span class="chip chip--test">Unit-tested</span></li>
+            <li><strong>Revocation reaches shared workspaces.</strong> A revoked Mac is refused on its next request and removed from every Deal Room workspace. Those workspaces are flagged for re-keying, so it cannot read later glossary versions. <span class="chip chip--test">Unit-tested</span></li>
+            <li><strong>Every admin action is on record.</strong> Admin and SCIM changes, failed admin logins and every export are logged in the same transaction as the change. A change is never saved without its entry. Each admin gets their own key, so entries name a person, not a shared account. <span class="chip chip--test">Unit-tested</span></li>
+            <li><strong>The record shows tampering.</strong> Each entry carries the hash of the one before it, and the whole chain is re-checked every time the log is read. An edited, deleted or truncated entry is reported with where the chain broke. Concurrent admins still produce one unbroken chain. <span class="chip chip--test">Unit-tested</span></li>
+            <li><strong>Audit exports you can check.</strong> JSON with a content digest, CSV that is safe to open in a spreadsheet, or PDF. The PDF carries a printed Ed25519 signature anyone can check offline, and can also carry a PAdES signature, so PDF readers show a signature panel and flag any change to the file. <span class="chip chip--test">Unit-tested</span></li>
+            <li><strong>Built for production.</strong> The full test suite and every database migration pass on PostgreSQL 16. Failed-credential limits are kept in the database, so they hold across servers. Forwarded client addresses are believed only from proxies you list. The server can refuse plain HTTP, sends HSTS, and can require verified TLS to its database. <span class="chip chip--test">Unit-tested</span></li>
+          </ul>
+          <p>Limits of these controls are listed under <a class="link-inline" href="#limits">Known limits</a>. The deployment guide in the review pack covers PostgreSQL, TLS, proxies, admin keys and the PDF certificate.</p>
+        </section>
+
+        <!-- 9 -->
         <section id="limits">
           <h2>Known limits and open items</h2>
           <p>We would rather you read these here than discover them in a pilot.</p>
@@ -343,14 +361,16 @@
 
           <h3>Control plane</h3>
           <div class="limits">
-            <div class="limit"><span class="chip chip--open">Open</span><div><b>Deprovisioning.</b><p>Removing someone from your identity provider does not revoke their Mac. An admin revokes the device in the console.</p></div></div>
-            <div class="limit"><span class="chip chip--open">Open</span><div><b>Production readiness.</b><p>Tested on SQLite. PostgreSQL is supported in code but not yet run. Rate limiting is per server process, so use your proxy&rsquo;s limiter too. TLS ends at your reverse proxy.</p></div></div>
-            <div class="limit"><span class="chip chip--open">Open</span><div><b>Admin audit log.</b><p>Admin actions are not yet logged.</p></div></div>
-            <div class="limit"><span class="chip chip--open">Open</span><div><b>Audit export signature.</b><p>The PDF carries an Ed25519 signature anyone can check offline with our published key. It is not a PAdES signature, so Acrobat shows no &ldquo;signed&rdquo; badge.</p></div></div>
+            <div class="limit"><span class="chip chip--open">Open</span><div><b>Identity providers, live.</b><p>SCIM is tested with Okta- and Entra-shaped requests, not yet against a live tenant. It syncs users, not groups.</p></div></div>
+            <div class="limit"><span class="chip chip--open">Design</span><div><b>Revocation cannot reach into the Mac.</b><p>A revoked Mac loses all server access, but memos already stored on it stay readable by that Mac until its keys are deleted.</p></div></div>
+            <div class="limit"><span class="chip chip--open">Design</span><div><b>The audit chain shows tampering; it does not prevent it.</b><p>Someone with full write access to the database could rebuild the whole chain. Export the log regularly and keep its latest hash somewhere they cannot reach.</p></div></div>
+            <div class="limit"><span class="chip chip--open">Open</span><div><b>PDF signer trust.</b><p>The PAdES signature is validated with pyHanko, not yet opened in Acrobat. With a self-signed certificate, readers show it as valid once they trust that certificate. A green check by default needs an Adobe-trusted certificate, which we have not bought.</p></div></div>
+            <div class="limit"><span class="chip chip--open">Open</span><div><b>Continuous PostgreSQL testing.</b><p>The suite passes on PostgreSQL 16 locally. A CI job that runs it on every change is still to do.</p></div></div>
+            <div class="limit"><span class="chip chip--open">Design</span><div><b>Only failed credentials are rate-limited.</b><p>Successful traffic is not throttled by the server. Set a request limit at your proxy as well.</p></div></div>
           </div>
         </section>
 
-        <!-- 9 -->
+        <!-- 10 -->
         <section id="review">
           <h2>Request the review pack</h2>
           <p>Bring this to your security team with the evidence behind it.</p>
@@ -359,6 +379,7 @@
               <li><strong>Threat model.</strong> Assets, guarantees with their tests, copies outside the vault, and residual risk.</li>
               <li><strong>Software bill of materials.</strong> Every dependency and model, with versions, licenses, pinned commits and hashes.</li>
               <li><strong>Architecture decision record.</strong> The session-process isolation decision, alternatives considered, and costs.</li>
+              <li><strong>Deployment guide.</strong> PostgreSQL, TLS, trusted proxies, per-person admin keys, audit-log export, and the audit PDF certificate.</li>
               <li><strong>A sample signed receipt</strong> from a real session, and a walkthrough of how to verify it.</li>
             </ul>
             <div class="cta-row cta-row--left">
