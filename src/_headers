@@ -18,3 +18,8 @@
 
 /index.html
   Cache-Control: public, max-age=0, must-revalidate
+
+/security/Vaulta-Security-Assurance-Report.pdf
+  Cache-Control: public, max-age=3600, must-revalidate
+  Content-Disposition: inline; filename="Vaulta-Security-Assurance-Report.pdf"
+  X-Robots-Tag: noindex
