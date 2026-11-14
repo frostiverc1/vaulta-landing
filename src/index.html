@@ -3,8 +3,9 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-  <title>{{NAME}} — Zero Egress. Zero Exceptions.</title>
+  <title>{{NAME}}: On-Device Meeting Copilot for M&A and Litigation</title>
   <meta name="description" content="{{NAME}} is the on-device meeting copilot for M&A and litigation. Speech-to-text and memo generation run on the Apple Neural Engine. Zero bytes of client audio ever reach the cloud.">
+  <meta name="robots" content="index, follow, max-image-preview:large, max-snippet:-1">
   <meta name="color-scheme" content="light dark">
   <meta name="theme-color" content="#000000" media="(prefers-color-scheme: dark)">
   <meta name="theme-color" content="#f5f5f7" media="(prefers-color-scheme: light)">
@@ -12,6 +13,7 @@
   <meta property="og:description" content="The on-device meeting copilot for M&A and litigation. 0 bytes sent to the cloud.">
   <meta property="og:type" content="website">
   <meta property="og:site_name" content="{{NAME}}">
+  <meta property="og:locale" content="en_US">
   <meta name="twitter:card" content="summary_large_image">
   <meta name="twitter:title" content="{{NAME}} — Zero Egress. Zero Exceptions.">
   <meta name="twitter:description" content="The on-device meeting copilot for M&amp;A and litigation. 0 bytes sent to the cloud.">
@@ -23,6 +25,8 @@
   <meta property="og:image:height" content="630">
   <meta property="og:image:alt" content="{{NAME}} — Zero Egress. Zero Exceptions.">
   <meta name="twitter:image" content="{{URL}}/assets/og.png">
+  <meta name="twitter:image:alt" content="{{NAME}} — Zero Egress. Zero Exceptions.">
+  <script type="application/ld+json">{"@context":"https://schema.org","@graph":[{"@type":"Organization","@id":"{{URL}}/#org","name":"{{NAME}}","url":"{{URL}}/","logo":"{{URL}}/assets/app-icon.png","email":"{{EMAIL}}"},{"@type":"WebSite","@id":"{{URL}}/#website","url":"{{URL}}/","name":"{{NAME}}","publisher":{"@id":"{{URL}}/#org"},"inLanguage":"en"},{"@type":"SoftwareApplication","@id":"{{URL}}/#app","name":"{{NAME}} for Mac","url":"{{URL}}/","description":"On-device meeting copilot for M&A and litigation. Speech recognition and memo drafting run on Apple silicon; meeting audio and transcripts never leave the Mac.","applicationCategory":"BusinessApplication","operatingSystem":"macOS 14.2 or later (Apple silicon)","image":"{{URL}}/assets/og.png","publisher":{"@id":"{{URL}}/#org"}}]}</script>
   <!--/if:url-->
   <link rel="icon" href="/favicon.svg" type="image/svg+xml">
   <link rel="apple-touch-icon" href="/assets/apple-touch-icon.png">
@@ -45,6 +49,7 @@
         <li><a href="#enterprise">Enterprise</a></li>
         <li><a href="/security/">Security brief</a></li>
         <li><a href="#specs">Tech specs</a></li>
+        <li><a href="/faq/">FAQ</a></li>
       </ul>
       <a class="btn btn--small" href="#access">Request access</a>
       <button class="nav__toggle" id="navToggle" aria-label="Menu" aria-expanded="false" aria-controls="navLinks">
@@ -308,6 +313,7 @@
           <details><summary>Can I trust the numbers in the memo?</summary><p>Every figure is checked against the transcript. Any number that can’t be matched is flagged <span class="verify-inline">[VERIFY FIGURE]</span> so a human confirms it before approval.</p></details>
           <details><summary>Which Macs are supported?</summary><p>Any Mac with Apple silicon (M1 or later) running macOS 14.2 or newer.</p></details>
         </div>
+        <p class="center reveal"><a class="link" href="/faq/">See all questions</a></p>
       </div>
     </section>
 
@@ -331,6 +337,7 @@
       <div class="footer__row">
         <span>© 2026 {{NAME}}. All rights reserved.</span>
         <a href="/security/">Security brief</a>
+        <a href="/faq/">FAQ</a>
         <span class="footer__brand"><img src="/assets/mark.svg" alt="" width="16" height="14"> Zero Egress. Zero Exceptions.</span>
       </div>
     </div>

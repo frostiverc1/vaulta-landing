@@ -1,3 +1,6 @@
+# Everything public is open to search engines and AI crawlers. The 404 page and the report PDF
+# are excluded from the index by their own noindex signals, so they are not blocked here
+# (a blocked URL cannot be crawled, which would hide the noindex from the crawler).
 User-agent: *
 Allow: /
 <!--if:url-->

@@ -5,6 +5,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
   <title>Security brief for CISOs — {{NAME}}</title>
   <meta name="description" content="How {{NAME}} is built, what it guarantees, how to verify it, and what it does not cover. Architecture, data flows, shred model, attestation receipts, supply chain and known limits.">
+  <meta name="robots" content="index, follow, max-image-preview:large, max-snippet:-1">
   <meta name="color-scheme" content="light dark">
   <meta name="theme-color" content="#000000" media="(prefers-color-scheme: dark)">
   <meta name="theme-color" content="#f5f5f7" media="(prefers-color-scheme: light)">
@@ -12,12 +13,16 @@
   <meta property="og:description" content="Architecture, data flows, attestation receipts, supply chain and known limits, stated plainly.">
   <meta property="og:type" content="website">
   <meta property="og:site_name" content="{{NAME}}">
+  <meta property="og:locale" content="en_US">
   <meta name="twitter:card" content="summary_large_image">
+  <meta name="twitter:title" content="Security brief for CISOs — {{NAME}}">
+  <meta name="twitter:description" content="Architecture, data flows, attestation receipts, supply chain and known limits, stated plainly.">
   <!--if:url-->
   <link rel="canonical" href="{{URL}}/security/">
   <meta property="og:url" content="{{URL}}/security/">
   <meta property="og:image" content="{{URL}}/assets/og.png">
   <meta name="twitter:image" content="{{URL}}/assets/og.png">
+  <script type="application/ld+json">{"@context":"https://schema.org","@graph":[{"@type":"BreadcrumbList","itemListElement":[{"@type":"ListItem","position":1,"name":"{{NAME}}","item":"{{URL}}/"},{"@type":"ListItem","position":2,"name":"Security brief","item":"{{URL}}/security/"}]},{"@type":"TechArticle","headline":"Security brief for CISOs","url":"{{URL}}/security/","inLanguage":"en","dateModified":"{{LASTMOD:security/index.html}}","image":"{{URL}}/assets/og.png","publisher":{"@type":"Organization","name":"{{NAME}}","url":"{{URL}}/"}}]}</script>
   <!--/if:url-->
   <link rel="icon" href="/favicon.svg" type="image/svg+xml">
   <link rel="apple-touch-icon" href="/assets/apple-touch-icon.png">
@@ -39,6 +44,7 @@
         <li><a href="/security/" aria-current="page">Security brief</a></li>
         <li><a href="/#enterprise">Enterprise</a></li>
         <li><a href="/#specs">Tech specs</a></li>
+        <li><a href="/faq/">FAQ</a></li>
       </ul>
       <a class="btn btn--small" href="#review">Request review pack</a>
       <button class="nav__toggle" id="navToggle" aria-label="Menu" aria-expanded="false" aria-controls="navLinks">
@@ -403,6 +409,7 @@
       <p class="footnote">This brief describes the {{NAME}} macOS client and control plane as built at the date above. It is not a warranty, a certification, or a substitute for your organization’s own security and legal review. Mac, Apple silicon and Secure Enclave are trademarks of Apple Inc. {{NAME}} is not affiliated with or endorsed by Apple.</p>
       <div class="footer__row">
         <span>© 2026 {{NAME}}. All rights reserved.</span>
+        <a href="/faq/">FAQ</a>
         <span class="footer__brand"><a href="/">Back to {{NAME}}</a></span>
       </div>
     </div>

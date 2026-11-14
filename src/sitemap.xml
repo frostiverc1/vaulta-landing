@@ -2,10 +2,14 @@
 <urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
   <url>
     <loc>{{URL}}/</loc>
-    <lastmod>{{DATE}}</lastmod>
+    <lastmod>{{LASTMOD:index.html}}</lastmod>
   </url>
   <url>
     <loc>{{URL}}/security/</loc>
-    <lastmod>{{DATE}}</lastmod>
+    <lastmod>{{LASTMOD:security/index.html}}</lastmod>
+  </url>
+  <url>
+    <loc>{{URL}}/faq/</loc>
+    <lastmod>{{LASTMOD:faq/index.html}}</lastmod>
   </url>
 </urlset>

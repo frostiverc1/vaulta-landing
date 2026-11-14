@@ -1,0 +1,23 @@
+# {{NAME}}
+
+> {{NAME}} is an on-device meeting copilot for Mac, built for M&A, litigation and deal teams. Speech recognition and memo drafting run locally on Apple silicon. Meeting audio and verbatim transcripts are held only in an encrypted, RAM-pinned vault in a sandboxed process with no network access, and are overwritten when the user approves the memo. The cloud control plane receives account, policy and signed attestation-receipt metadata only.
+
+Key facts, as stated on this site:
+
+- Platform: macOS 14.2 or later on Apple silicon (M1 or later); 8 GB memory minimum, 16 GB recommended.
+- Capture is at the macOS audio-system level. No meeting bot joins the call.
+- Models: Whisper (speech recognition), Silero VAD, and Microsoft Phi-3.5-Mini (memo drafting). All MIT licensed.
+- Every session ends with a receipt signed by a non-exportable Secure Enclave P-256 key, recording that no internet socket was observed, that the vault was verified zeroed, and that the session process exited.
+- Limits are published, not hidden: current builds are ad-hoc signed (not yet notarized), the Mac app does not yet run single sign-on, and no third-party certification (for example SOC 2) is claimed.
+- {{NAME}} does not claim that no trace of a conversation remains anywhere. System audio services and hibernation are outside what the vault controls.
+
+## Pages
+
+- [{{NAME}} for Mac]({{URL}}/): product overview, how capture, draft and shred works, enterprise deployment, hardware requirements
+- [Security brief]({{URL}}/security/): architecture, data-flow table, what shred does and does not cover, receipt format, supply chain, known limits and open items
+- [Frequently asked questions]({{URL}}/faq/): privacy, security, deployment and compatibility answers
+
+## Optional
+
+- [Security assurance report (PDF, 22 pages)]({{URL}}/security/Vaulta-Security-Assurance-Report.pdf): evidence behind the security brief; free to download
+- Contact for access requests, review packs and vulnerability reports: {{EMAIL}}

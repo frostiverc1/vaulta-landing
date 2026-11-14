@@ -1,0 +1,137 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <title>{{NAME}} FAQ — Privacy, Security and Deployment Answers</title>
+  <meta name="description" content="Straight answers about {{NAME}}: what stays on the Mac, what the control plane receives, what shred does and does not cover, supported Macs, meeting apps, SSO, models and certifications.">
+  <meta name="robots" content="index, follow, max-image-preview:large, max-snippet:-1">
+  <meta name="color-scheme" content="light dark">
+  <meta name="theme-color" content="#000000" media="(prefers-color-scheme: dark)">
+  <meta name="theme-color" content="#f5f5f7" media="(prefers-color-scheme: light)">
+  <meta property="og:title" content="{{NAME}} FAQ — Privacy, Security and Deployment">
+  <meta property="og:description" content="What stays on the Mac, what doesn’t, and what {{NAME}} does not claim. Answers for lawyers, bankers and security teams.">
+  <meta property="og:type" content="website">
+  <meta property="og:site_name" content="{{NAME}}">
+  <meta property="og:locale" content="en_US">
+  <meta name="twitter:card" content="summary_large_image">
+  <meta name="twitter:title" content="{{NAME}} FAQ — Privacy, Security and Deployment">
+  <meta name="twitter:description" content="What stays on the Mac, what doesn’t, and what {{NAME}} does not claim.">
+  <!--if:url-->
+  <link rel="canonical" href="{{URL}}/faq/">
+  <meta property="og:url" content="{{URL}}/faq/">
+  <meta property="og:image" content="{{URL}}/assets/og.png">
+  <meta property="og:image:width" content="1200">
+  <meta property="og:image:height" content="630">
+  <meta property="og:image:alt" content="{{NAME}} — Zero Egress. Zero Exceptions.">
+  <meta name="twitter:image" content="{{URL}}/assets/og.png">
+  <script type="application/ld+json">{"@context":"https://schema.org","@type":"BreadcrumbList","itemListElement":[{"@type":"ListItem","position":1,"name":"{{NAME}}","item":"{{URL}}/"},{"@type":"ListItem","position":2,"name":"FAQ","item":"{{URL}}/faq/"}]}</script>
+  <!--/if:url-->
+  <!--faq-jsonld-->
+  <link rel="icon" href="/favicon.svg" type="image/svg+xml">
+  <link rel="apple-touch-icon" href="/assets/apple-touch-icon.png">
+  <link rel="stylesheet" href="/styles.css">
+</head>
+<body>
+  <a class="skip" href="#main">Skip to content</a>
+
+  <header class="nav" id="nav">
+    <nav class="nav__inner" aria-label="Primary">
+      <a class="nav__brand" href="/" aria-label="{{NAME}} home">
+        <img src="/assets/mark.svg" alt="" width="22" height="19">
+        <span>{{NAME}}</span>
+      </a>
+      <ul class="nav__links" id="navLinks">
+        <li><a href="/#how">How it works</a></li>
+        <li><a href="/#security">Security</a></li>
+        <li><a href="/security/">Security brief</a></li>
+        <li><a href="/#enterprise">Enterprise</a></li>
+        <li><a href="/faq/" aria-current="page">FAQ</a></li>
+      </ul>
+      <a class="btn btn--small" href="mailto:{{EMAIL}}?subject={{NAME_URL}}%20access%20request">Request access</a>
+      <button class="nav__toggle" id="navToggle" aria-label="Menu" aria-expanded="false" aria-controls="navLinks">
+        <span></span><span></span>
+      </button>
+    </nav>
+  </header>
+
+  <main id="main">
+    <header class="page-hero">
+      <div class="container narrow center">
+        <p class="eyebrow">FAQ</p>
+        <h1 class="headline">Questions about {{NAME}}, answered plainly.</h1>
+        <p class="lede lede--muted">What stays on the Mac, what doesn’t, and what we do not claim. For the full technical detail, read the <a class="link-inline" href="/security/">security brief</a>.</p>
+      </div>
+    </header>
+
+    <div class="container narrow faq-page">
+      <section aria-labelledby="g-privacy">
+        <h2 class="faq-group" id="g-privacy">Privacy and data</h2>
+        <div class="faq">
+          <details><summary>Does {{NAME}} ever send audio or transcripts to a server?</summary><p>No. Capture, transcription, and memo generation all happen on your Mac. The cloud control plane handles seats, policy, and signed receipts only, and never receives audio or transcript text.</p></details>
+          <details><summary>What does “zero egress” cover?</summary><p>It applies to meeting audio, transcripts, and generated memos processed by the {{NAME}} macOS client. The session process that handles them has a sandbox profile with no network entitlement, so the operating system refuses its sockets. It does not cover metadata sent to the control plane, or a memo you choose to export.</p></details>
+          <details><summary>What does the {{NAME}} control plane receive?</summary><p>Account and policy metadata, directory status if you connect your identity provider, an admin audit log, and signed attestation receipts. A receipt carries the session ID, device hardware UUID, workspace code name, timestamps, model hashes and verdicts. It never carries audio or transcript text.</p></details>
+          <details><summary>Does a bot join my meetings?</summary><p>No. {{NAME}} captures audio at the system level, so there’s nothing to admit to the call and nothing for other participants to see.</p></details>
+          <details><summary>Does {{NAME}} protect attorney-client privilege?</summary><p>{{NAME}} is built so that no third-party AI service sits in the loop and no verbatim transcript is kept after approval. That removes two common privilege and discovery concerns. It is not legal advice, and it does not replace your organization’s own legal and compliance review.</p></details>
+        </div>
+      </section>
+
+      <section aria-labelledby="g-shred">
+        <h2 class="faq-group" id="g-shred">Shredding the transcript</h2>
+        <div class="faq">
+          <details><summary>What happens to the transcript?</summary><p>It lives in encrypted, pinned memory only. When you approve the memo, the buffer is overwritten. If the countdown expires first, your organization’s policy decides whether the draft is shredded or kept for later review.</p></details>
+          <details><summary>What triggers a shred?</summary><p>Approving the memo, the review timer expiring, the Mac going to sleep, quitting the app, losing the link to the control process, or a termination signal. The vault is zeroed and read back to confirm, and then the session process exits.</p></details>
+          <details><summary>Does shredding mean no trace of the conversation remains anywhere?</summary><p>No, and we don’t claim it. The vault and its key are zeroed and verified, and the session process is terminated so the operating system zeroes its pages. System audio services and hibernation images sit outside what the vault controls. The security brief lists every copy that exists outside the vault.</p></details>
+          <details><summary>Can I trust the numbers in the memo?</summary><p>Every figure is checked against the transcript. Any number that can’t be matched is flagged <span class="verify-inline">[VERIFY FIGURE]</span> so a human confirms it before approval.</p></details>
+        </div>
+      </section>
+
+      <section aria-labelledby="g-security">
+        <h2 class="faq-group" id="g-security">Security and assurance</h2>
+        <div class="faq">
+          <details><summary>What is an attestation receipt?</summary><p>After every session, a non-exportable Secure Enclave P-256 key signs a receipt recording that no internet socket was observed, that the vault was verified zeroed, and that the session process exited. A session that crashed before reporting a shred gets an honest receipt that is never marked clean.</p></details>
+          <details><summary>Which AI models does {{NAME}} use?</summary><p>Whisper for speech recognition, Silero VAD for voice activity detection, and Microsoft Phi-3.5-Mini for memo drafting. All are MIT licensed. Models are verified against a signed manifest or pre-staged by your IT team, and a full software bill of materials is part of the review pack.</p></details>
+          <details><summary>Does {{NAME}} have SOC 2 or other certifications?</summary><p>No certification or third-party assessment is claimed today. Instead, the <a href="/security/">security brief</a> states each guarantee with the evidence behind it and lists what is not done or not yet verified, and the full assurance report is a free download.</p></details>
+          <details><summary>How do I report a security vulnerability?</summary><p>Email {{EMAIL}} with the subject “{{NAME}} vulnerability”.</p></details>
+        </div>
+      </section>
+
+      <section aria-labelledby="g-deploy">
+        <h2 class="faq-group" id="g-deploy">Deployment and compatibility</h2>
+        <div class="faq">
+          <details><summary>Which Macs are supported?</summary><p>Any Mac with Apple silicon (M1 or later) running macOS 14.2 or newer. 8 GB of unified memory is the minimum and 16 GB is recommended. {{NAME}} needs about 100 MB to start and about 3 GB for the full engine.</p></details>
+          <details><summary>Does {{NAME}} work with Zoom, Teams and Google Meet?</summary><p>It captures system audio, so it does not depend on a specific meeting app. Live capture against Zoom, Teams and Meet has had one live test, so run a dry run before relying on it. Remote participants currently appear as one speaker.</p></details>
+          <details><summary>Does {{NAME}} work on a firewalled network?</summary><p>Yes. Pilots install from an offline kit with models pre-staged, so there is no dependence on public model hosts. Receipts produced offline wait in an outbox and upload when the Mac can reach the control plane.</p></details>
+          <details><summary>Does {{NAME}} support single sign-on and SCIM?</summary><p>The control plane accepts OpenID Connect ID tokens from Okta and Entra, and SCIM provisioning so leavers lose access automatically. SCIM syncs users, not groups, and is tested with Okta- and Entra-shaped requests rather than a live tenant. The Mac app does not yet run single sign-on, so devices enroll with a one-time link. SAML-only identity providers are not supported.</p></details>
+          <details><summary>Is {{NAME}} notarized for MDM deployment?</summary><p>Not yet. Current builds are ad-hoc signed, and notarized installers for Jamf, Kandji and Intune are in progress. Updates are installed by your administrator through MDM or the offline kit.</p></details>
+          <details><summary>How do I get access?</summary><p>Request access by email at {{EMAIL}} to arrange a walkthrough with your security team, and ask for the review pack: threat model, software bill of materials, architecture decision record and deployment guide.</p></details>
+        </div>
+      </section>
+    </div>
+
+    <section class="cta" id="access">
+      <div class="container narrow center">
+        <h2 class="headline">Keep the memo.<br>Shred the rest.</h2>
+        <p class="lede lede--muted">Still have a question? Ask it, or bring the security brief to your review.</p>
+        <div class="cta-row cta-row--center">
+          <a class="btn" href="mailto:{{EMAIL}}?subject={{NAME_URL}}%20question">Ask a question</a>
+          <a class="link" href="/security/">Read the security brief</a>
+        </div>
+      </div>
+    </section>
+  </main>
+
+  <footer class="footer">
+    <div class="container">
+      <p class="footnote">Zero-egress applies to meeting audio, transcripts, and generated memos processed by the {{NAME}} macOS client. The {{NAME}} control plane receives account, policy, and attestation metadata only. Attestation receipts demonstrate that no inference traffic left the device during a session; they do not replace your organization’s own legal and compliance review. Mac and Apple silicon are trademarks of Apple Inc. {{NAME}} is not affiliated with or endorsed by Apple.</p>
+      <div class="footer__row">
+        <span>© 2026 {{NAME}}. All rights reserved.</span>
+        <a href="/security/">Security brief</a>
+        <span class="footer__brand"><img src="/assets/mark.svg" alt="" width="16" height="14"> Zero Egress. Zero Exceptions.</span>
+      </div>
+    </div>
+  </footer>
+
+  <script src="/main.js" defer></script>
+</body>
+</html>
