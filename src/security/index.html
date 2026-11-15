@@ -160,13 +160,13 @@
               <tbody>
                 <tr><th scope="row">Raw audio</th><td>Session process memory, sealed into the vault within milliseconds.</td><td><strong>No.</strong> The session process cannot open sockets.</td></tr>
                 <tr><th scope="row">Verbatim transcript</th><td>The vault, and the Review window inside the session process.</td><td><strong>No.</strong></td></tr>
-                <tr><th scope="row">Approved memo</th><td>Control process. AES-256-GCM file per memo with its own key, wrapped to a Secure Enclave key.</td><td>Only if the user exports it (Markdown or Word).</td></tr>
+                <tr><th scope="row">Approved memo</th><td>Control process. AES-256-GCM file per memo with its own key, wrapped to a Secure Enclave key that only works with Touch ID or the login password.</td><td>Only if the user exports it (Markdown or Word).</td></tr>
                 <tr><th scope="row">Signed receipt</th><td>Written to disk first, then uploaded to the control plane. Offline receipts wait in an outbox.</td><td><strong>Yes, metadata only.</strong> Session ID, device hardware UUID, workspace code name, timestamps, model hashes, verdicts.</td></tr>
                 <tr><th scope="row">Enrollment and policy</th><td>The control plane.</td><td>Yes. Account and policy metadata.</td></tr>
                 <tr><th scope="row">Directory status</th><td>The control plane, pushed by your identity provider over SCIM if you connect it: user name, email addresses, display name, external ID, active or not.</td><td>Not from the Mac. It comes from your identity provider.</td></tr>
                 <tr><th scope="row">Admin audit log</th><td>The control plane. Who changed what, when and from which address. Never tokens or keys.</td><td>Not from the Mac. A server-side record of admin and SCIM actions.</td></tr>
                 <tr><th scope="row">Logs</th><td>Local. Counts and timings only, never transcript text.</td><td>No.</td></tr>
-                <tr><th scope="row">Keys</th><td>Secure Enclave blobs. Useless on another Mac.</td><td>No.</td></tr>
+                <tr><th scope="row">Keys</th><td>Secure Enclave blobs. Useless on another Mac. The memo and glossary keys need Touch ID or the login password; the receipt key does not, so a review that auto-shreds with nobody at the Mac still gets a signed receipt.</td><td>No.</td></tr>
               </tbody>
             </table>
           </div>
