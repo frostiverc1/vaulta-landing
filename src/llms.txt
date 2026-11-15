@@ -19,5 +19,5 @@ Key facts, as stated on this site:
 
 ## Optional
 
-- [Security assurance report (PDF, 22 pages)]({{URL}}/security/Vaulta-Security-Assurance-Report.pdf): evidence behind the security brief; free to download
+- [Security assurance report (PDF, 22 pages)]({{URL}}/security/Taceward-Security-Assurance-Report.pdf): evidence behind the security brief; free to download
 - Contact for access requests, review packs and vulnerability reports: {{EMAIL}}

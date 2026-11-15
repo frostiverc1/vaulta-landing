@@ -19,7 +19,7 @@
 /index.html
   Cache-Control: public, max-age=0, must-revalidate
 
-/security/Vaulta-Security-Assurance-Report.pdf
+/security/Taceward-Security-Assurance-Report.pdf
   Cache-Control: public, max-age=3600, must-revalidate
-  Content-Disposition: inline; filename="Vaulta-Security-Assurance-Report.pdf"
+  Content-Disposition: inline; filename="Taceward-Security-Assurance-Report.pdf"
   X-Robots-Tag: noindex
