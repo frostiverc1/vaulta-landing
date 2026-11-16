@@ -64,8 +64,7 @@
         <p class="brief-meta">Last reviewed 14 November 2026. Reflects the current build, not the roadmap. Claims name the evidence behind them.</p>
         <div class="legend" aria-label="Status key">
           <span><span class="chip chip--ok">Verified</span> observed end to end on a real run</span>
-          <span><span class="chip chip--test">Unit-tested</span> covered by automated tests</span>
-          <span><span class="chip chip--open">Open</span> not done or not yet verified</span>
+          <span><span class="chip chip--open">Open</span> not done, not yet verified, or a known limit</span>
         </div>
       </div>
     </header>
@@ -116,8 +115,8 @@
                 <li>Stores approved memos (encrypted, one file each).</li>
                 <li><strong>Never receives audio or verbatim text.</strong> It receives the approved, sanitized memo, a shred report and model hashes.</li>
                 <li><strong>Not sandboxed.</strong> See <a class="link-inline" href="#limits">Known limits</a>.</li>
+                <li><strong>Network:</strong> HTTPS to the control plane only.</li>
               </ul>
-              <span class="chip chip--ok">Network: yes, HTTPS to the control plane</span>
             </div>
             <div class="link-col" aria-hidden="true">
               <svg viewBox="0 0 120 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M4 12h112M12 6l-8 6 8 6M108 6l8 6-8 6"/></svg>
@@ -132,8 +131,8 @@
                 <li>Holds the vault. Verbatim text never leaves this process.</li>
                 <li>Sandbox entitlements: <code>app-sandbox</code> and <code>device.audio-input</code>. Nothing else.</li>
                 <li>Exits about 1.5 s after reporting the shred. Shreds and exits if the control process disappears.</li>
+                <li><strong>Network: none.</strong> The OS refuses its sockets (EPERM). <span class="chip chip--ok">Verified</span></li>
               </ul>
-              <span class="chip chip--ok">Network: none. Sockets refused (EPERM)</span>
             </div>
           </div>
 
@@ -160,6 +159,7 @@
               <tbody>
                 <tr><th scope="row">Raw audio</th><td>Session process memory, sealed into the vault within milliseconds.</td><td><strong>No.</strong> The session process cannot open sockets.</td></tr>
                 <tr><th scope="row">Verbatim transcript</th><td>The vault, and the Review window inside the session process.</td><td><strong>No.</strong></td></tr>
+                <tr><th scope="row">Voice fingerprints</th><td>One per remote utterance, used only to number remote speakers. Sealed in the vault next to the transcript and shredded with it. Never stored, never compared across meetings.</td><td><strong>No.</strong></td></tr>
                 <tr><th scope="row">Approved memo</th><td>Control process. AES-256-GCM file per memo with its own key, wrapped to a Secure Enclave key that only works with Touch ID or the login password.</td><td>Only if the user exports it (Markdown or Word).</td></tr>
                 <tr><th scope="row">Signed receipt</th><td>Written to disk first, then uploaded to the control plane. Offline receipts wait in an outbox.</td><td><strong>Yes, metadata only.</strong> Session ID, device hardware UUID, workspace code name, timestamps, model hashes, verdicts.</td></tr>
                 <tr><th scope="row">Enrollment and policy</th><td>The control plane.</td><td>Yes. Account and policy metadata.</td></tr>
@@ -272,6 +272,7 @@
                 <tr><th scope="row">Whisper large-v3-turbo</th><td>Speech to text (default when present)</td><td>OpenAI, Core ML build by Argmax</td><td>MIT</td><td>627 MB</td><td>weight-file SHA-256</td></tr>
                 <tr><th scope="row">Silero VAD v6.0.0</th><td>Voice activity</td><td>Silero, Core ML conversion by FluidInference</td><td>MIT</td><td>0.9 MB</td><td><code>b419383c</code></td></tr>
                 <tr><th scope="row">Phi-3.5-mini-instruct, 4-bit</th><td>Memo drafting</td><td>Microsoft, MLX conversion by mlx-community</td><td>MIT</td><td>2.15 GB</td><td><code>7b2052fd</code></td></tr>
+                <tr><th scope="row">SpeechBrain ECAPA-TDNN</th><td>Telling remote speakers apart</td><td>SpeechBrain (trained on VoxCeleb), Core ML conversion by us</td><td>Apache-2.0</td><td>80 MB</td><td><code>0f99f2d0</code></td></tr>
               </tbody>
             </table>
           </div>
@@ -353,10 +354,10 @@
 
           <h3>Limits of the design</h3>
           <div class="limits">
-            <div class="limit"><span class="chip chip--open">Design</span><div><b>The control process is not sandboxed.</b><p>By design it never receives audio or verbatim text, but it is long-lived and holds the network connection and the memo store.</p></div></div>
-            <div class="limit"><span class="chip chip--open">Design</span><div><b>Other processes reading our memory is out of scope for now.</b><p>Defending against it needs hardened runtime and library validation, which need a Developer ID. Debugger attach is not blocked in development builds; deny-attach is for release builds.</p></div></div>
-            <div class="limit"><span class="chip chip--open">Design</span><div><b>The receipt key is not bound to the app.</b><p>A receipt proves that this Mac&rsquo;s Secure Enclave key signed it, not that an unmodified {{NAME}} build did. Binding the key to the app needs a stable signing identity and is a separate decision. Tested on one Mac with differently built apps.</p></div></div>
-            <div class="limit"><span class="chip chip--open">Design</span><div><b>Approval does not prove careful review.</b><p>The click is recorded in the receipt. It is a product control, not a technical one.</p></div></div>
+            <div class="limit"><span class="chip chip--open">Open</span><div><b>The control process is not sandboxed.</b><p>By design it never receives audio or verbatim text, but it is long-lived and holds the network connection and the memo store.</p></div></div>
+            <div class="limit"><span class="chip chip--open">Open</span><div><b>Other processes reading our memory is out of scope for now.</b><p>Defending against it needs hardened runtime and library validation, which need a Developer ID. Debugger attach is not blocked in development builds; deny-attach is for release builds.</p></div></div>
+            <div class="limit"><span class="chip chip--open">Open</span><div><b>The receipt key is not bound to the app.</b><p>A receipt proves that this Mac&rsquo;s Secure Enclave key signed it, not that an unmodified {{NAME}} build did. Binding the key to the app needs a stable signing identity and is a separate decision. Tested on one Mac with differently built apps.</p></div></div>
+            <div class="limit"><span class="chip chip--open">Open</span><div><b>Approval does not prove careful review.</b><p>The click is recorded in the receipt. It is a product control, not a technical one.</p></div></div>
           </div>
 
           <h3>Not done or not yet verified</h3>
@@ -374,11 +375,11 @@
           <h3>Control plane</h3>
           <div class="limits">
             <div class="limit"><span class="chip chip--open">Open</span><div><b>Identity providers, live.</b><p>SCIM is tested with Okta- and Entra-shaped requests, not yet against a live tenant. It syncs users, not groups.</p></div></div>
-            <div class="limit"><span class="chip chip--open">Design</span><div><b>Revocation cannot reach into the Mac.</b><p>A revoked Mac loses all server access, but memos already stored on it stay readable by that Mac until its keys are deleted. The same Mac can be enrolled again afterwards with a new key; we found that it could not be until 14 November and fixed it that day.</p></div></div>
-            <div class="limit"><span class="chip chip--open">Design</span><div><b>The audit chain shows tampering; it does not prevent it.</b><p>Someone with full write access to the database could rebuild the whole chain. Export the log regularly and keep its latest hash somewhere they cannot reach.</p></div></div>
+            <div class="limit"><span class="chip chip--open">Open</span><div><b>Revocation cannot reach into the Mac.</b><p>A revoked Mac loses all server access, but memos already stored on it stay readable by that Mac until its keys are deleted. The same Mac can be enrolled again afterwards with a new key; we found that it could not be until 14 November and fixed it that day.</p></div></div>
+            <div class="limit"><span class="chip chip--open">Open</span><div><b>The audit chain shows tampering; it does not prevent it.</b><p>Someone with full write access to the database could rebuild the whole chain. Export the log regularly and keep its latest hash somewhere they cannot reach.</p></div></div>
             <div class="limit"><span class="chip chip--open">Open</span><div><b>PDF signer trust.</b><p>The PAdES signature is validated with pyHanko, not yet opened in Acrobat. With a self-signed certificate, readers show it as valid once they trust that certificate. A green check by default needs an Adobe-trusted certificate, which we have not bought.</p></div></div>
             <div class="limit"><span class="chip chip--open">Open</span><div><b>Continuous PostgreSQL testing.</b><p>The suite passes on PostgreSQL 16 locally. A CI job that runs it on every change is still to do.</p></div></div>
-            <div class="limit"><span class="chip chip--open">Design</span><div><b>Only failed credentials are rate-limited.</b><p>Successful traffic is not throttled by the server. Set a request limit at your proxy as well.</p></div></div>
+            <div class="limit"><span class="chip chip--open">Open</span><div><b>Only failed credentials are rate-limited.</b><p>Successful traffic is not throttled by the server. Set a request limit at your proxy as well.</p></div></div>
           </div>
         </section>
 
