@@ -1,0 +1,10 @@
+{
+  // Static site: `npm run build` writes dist/, and Cloudflare serves it as static assets.
+  // dist/_headers (CSP, HSTS, caching) and dist/404.html are picked up from the assets directory.
+  "name": "taceward",
+  "compatibility_date": "2026-11-18",
+  "assets": {
+    "directory": "./dist",
+    "not_found_handling": "404-page"
+  }
+}
