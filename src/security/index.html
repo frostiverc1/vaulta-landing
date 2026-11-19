@@ -61,7 +61,7 @@
         <p class="eyebrow">Security brief</p>
         <h1 class="headline">Built to be audited, not just trusted.</h1>
         <p class="lede lede--muted">For CISOs, security architects and risk teams. This page states what {{NAME}} guarantees, how each guarantee is enforced, how you can check it, and what it does not cover.</p>
-        <p class="brief-meta">Last reviewed 14 November 2026. Reflects the current build, not the roadmap. Claims name the evidence behind them.</p>
+        <p class="brief-meta">Last reviewed 19 November 2026. Reflects the current build, not the roadmap. Claims name the evidence behind them.</p>
         <div class="legend" aria-label="Status key">
           <span><span class="chip chip--ok">Verified</span> observed end to end on a real run</span>
           <span><span class="chip chip--open">Open</span> not done, not yet verified, or a known limit</span>
@@ -95,7 +95,7 @@
             <div class="point"><b>One process touches the meeting, and it has no network.</b><p>Audio, transcripts and the memo model run in a short-lived, sandboxed session process. Its sandbox profile has no network entitlement, so the OS refuses its sockets. <span class="chip chip--ok">Verified</span></p></div>
             <div class="point"><b>Verbatim data lives in an encrypted, pinned vault.</b><p>Per-record AES-256-GCM, with the key and data held in <code>mlock</code>ed memory. It is zeroed and read back to confirm at approval, review timeout, sleep, quit, loss of the control link, or a termination signal. All of these except a normal quit were run live with the built app. <span class="chip chip--ok">Verified</span></p></div>
             <div class="point"><b>The process then exits.</b><p>When a process exits, the kernel zeroes its pages before reuse. That sweeps up copies the vault cannot reach. <span class="chip chip--ok">Verified</span></p></div>
-            <div class="point"><b>Every session ends with a signed receipt.</b><p>A non-exportable Secure Enclave P-256 key signs it. The backend refuses software-signed receipts by default. <span class="chip chip--ok">Verified</span></p></div>
+            <div class="point"><b>Every session ends with a signed receipt.</b><p>A non-exportable Secure Enclave P-256 key signs it. The backend refuses keys enrolled as software keys by default. It cannot yet prove a key is in a Secure Enclave; see <a class="link-inline" href="#limits">Known limits</a>. <span class="chip chip--ok">Verified</span></p></div>
             <div class="point"><b>We list what is not done.</b><p>Notarization, a production model-signing key, single sign-on from the Mac app and several live-testing gaps are open. They are in <a class="link-inline" href="#limits">Known limits</a>, not buried.</p></div>
           </div>
         </section>
@@ -129,7 +129,7 @@
               <ul>
                 <li>Capture, voice detection, speech recognition, memo model, numeric check, and the Review window.</li>
                 <li>Holds the vault. Verbatim text never leaves this process.</li>
-                <li>Sandbox entitlements: <code>app-sandbox</code> and <code>device.audio-input</code>. Nothing else.</li>
+                <li>Sandbox entitlements: <code>app-sandbox</code> and <code>device.audio-input</code>, plus read access to the installed model folder and write access only to a file the user picks in the export dialog. No network entitlement.</li>
                 <li>Exits about 1.5 s after reporting the shred. Shreds and exits if the control process disappears.</li>
                 <li><strong>Network: none.</strong> The OS refuses its sockets (EPERM). <span class="chip chip--ok">Verified</span></li>
               </ul>
@@ -162,6 +162,8 @@
                 <tr><th scope="row">Voice fingerprints</th><td>One per remote utterance, used only to number remote speakers. Sealed in the vault next to the transcript and shredded with it. Never stored, never compared across meetings.</td><td><strong>No.</strong></td></tr>
                 <tr><th scope="row">Approved memo</th><td>Control process. AES-256-GCM file per memo with its own key, wrapped to a Secure Enclave key that only works with Touch ID or the login password.</td><td>Only if the user exports it (Markdown or Word).</td></tr>
                 <tr><th scope="row">Signed receipt</th><td>Written to disk first, then uploaded to the control plane. Offline receipts wait in an outbox.</td><td><strong>Yes, metadata only.</strong> Session ID, device hardware UUID, workspace code name, timestamps, model hashes, verdicts.</td></tr>
+                <tr><th scope="row">Shared code names (Deal Room)</th><td>The control plane stores the workspace glossary as AES-256-GCM ciphertext, with its key wrapped separately to each member Mac. The server cannot read it.</td><td><strong>Yes, encrypted.</strong> Plain text only on member Macs.</td></tr>
+                <tr><th scope="row">Code names typed in Settings</th><td>The local settings file, readable only by the user&rsquo;s account. Not encrypted beyond FileVault, and included in Time Machine backups.</td><td>No.</td></tr>
                 <tr><th scope="row">Enrollment and policy</th><td>The control plane.</td><td>Yes. Account and policy metadata.</td></tr>
                 <tr><th scope="row">Directory status</th><td>The control plane, pushed by your identity provider over SCIM if you connect it: user name, email addresses, display name, external ID, active or not.</td><td>Not from the Mac. It comes from your identity provider.</td></tr>
                 <tr><th scope="row">Admin audit log</th><td>The control plane. Who changed what, when and from which address. Never tokens or keys.</td><td>Not from the Mac. A server-side record of admin and SCIM actions.</td></tr>
@@ -248,13 +250,14 @@
           <ul class="list">
             <li><strong>Signature.</strong> ECDSA P-256 over deterministic bytes: sorted keys, no whitespace, ISO-8601 UTC seconds. Formatting or key order cannot change a verdict. The receipt carries a key ID, the first 16 hex characters of the SHA-256 of the public key.</li>
             <li><strong>“Clean” has a precise meaning.</strong> No internet socket observed, vault verified zero, <em>and</em> the OS confirmed the session process exited. A session that crashed before reporting a shred gets an honest receipt that is never clean.</li>
-            <li><strong>Backend policy.</strong> Software-signed receipts, which are development only, are refused by default. Verified end to end against the real backend: a valid upload was accepted, while a duplicate, a tampered body, a software key, an unknown key and a receipt for another Mac were each refused or quarantined. The signature was verified independently in Python. <span class="chip chip--ok">Verified</span></li>
+            <li><strong>Backend policy.</strong> Software-signed receipts, which are development only, are refused by default. The key type is what the Mac declares when it enrolls. Verified end to end against the real backend: a valid upload was accepted, while a duplicate, a tampered body, a software key, an unknown key and a receipt for another Mac were each refused or quarantined. The signature was verified independently in Python. <span class="chip chip--ok">Verified</span></li>
           </ul>
 
           <div class="callout callout--warn">
             <b>What the receipt does not say</b>
             <p><strong>It does not report bytes.</strong> macOS has no per-process byte counter without private API, so we record whether an internet socket ever existed. <code>memset_zero_verified</code> means the vault was verified zero, not that no copy exists anywhere; <code>human_attorney_reviewed</code> records an approval, not the quality of the review.</p>
             <p><strong>It does not prove which build signed it.</strong> The device key is not yet bound to the app&rsquo;s code identity, so another process run by the same user could ask the Secure Enclave to sign. The key itself is non-exportable and cannot leave the Mac.</p>
+            <p><strong>It does not prove the key is in a Secure Enclave.</strong> The backend has no hardware attestation yet, so it relies on the key type the Mac declares. Someone holding an enrollment code could enroll an ordinary software key that claims to be a Secure Enclave key, and sign receipts with it.</p>
           </div>
         </section>
 
@@ -324,6 +327,7 @@
                 <tr><th scope="row">Models (read-only)</th><td><code>/Library/Application Support/{{NAME}}/Models</code></td></tr>
                 <tr><th scope="row">Approved memos</th><td><code>~/Library/Application Support/{{NAME}}/Memos</code>, encrypted, one file each</td></tr>
                 <tr><th scope="row">Receipts and outbox</th><td><code>~/Library/Application Support/{{NAME}}/Receipts</code> and <code>Outbox</code></td></tr>
+                <tr><th scope="row">Settings</th><td><code>~/Library/Application Support/{{NAME}}/settings.json</code>, including any code names typed in Settings, not encrypted</td></tr>
                 <tr><th scope="row">Logs</th><td><code>~/Library/Application Support/{{NAME}}/Logs</code>, counts and timings only</td></tr>
                 <tr><th scope="row">Keys</th><td><code>~/Library/Application Support/{{NAME}}/Keys</code>, Secure Enclave blobs</td></tr>
               </tbody>
@@ -357,6 +361,7 @@
             <div class="limit"><span class="chip chip--open">Open</span><div><b>The control process is not sandboxed.</b><p>By design it never receives audio or verbatim text, but it is long-lived and holds the network connection and the memo store.</p></div></div>
             <div class="limit"><span class="chip chip--open">Open</span><div><b>Other processes reading our memory is out of scope for now.</b><p>Defending against it needs hardened runtime and library validation, which need a Developer ID. Debugger attach is not blocked in development builds; deny-attach is for release builds.</p></div></div>
             <div class="limit"><span class="chip chip--open">Open</span><div><b>The receipt key is not bound to the app.</b><p>A receipt proves that this Mac&rsquo;s Secure Enclave key signed it, not that an unmodified {{NAME}} build did. Binding the key to the app needs a stable signing identity and is a separate decision. Tested on one Mac with differently built apps.</p></div></div>
+            <div class="limit"><span class="chip chip--open">Open</span><div><b>The backend cannot check that a key is in a Secure Enclave.</b><p>The key type comes from the Mac at enrollment. An enrolled user could register a software key that claims otherwise and sign receipts with it, without running {{NAME}}. Hardware key attestation is not built yet. Until it is, a receipt shows what an enrolled key signed.</p></div></div>
             <div class="limit"><span class="chip chip--open">Open</span><div><b>Approval does not prove careful review.</b><p>The click is recorded in the receipt. It is a product control, not a technical one.</p></div></div>
           </div>
 
@@ -364,7 +369,9 @@
           <div class="limits">
             <div class="limit"><span class="chip chip--open">Open</span><div><b>Signing and notarization.</b><p>Current builds are ad-hoc signed. A Mac that only runs Developer ID software will refuse them until that is done.</p></div></div>
             <div class="limit"><span class="chip chip--open">Open</span><div><b>Single sign-on.</b><p>The control plane accepts OpenID Connect ID tokens from Okta and Entra. The Mac app does not yet run that sign-in, so devices enroll with a one-time link. SAML-only identity providers are not supported.</p></div></div>
-            <div class="limit"><span class="chip chip--open">Open</span><div><b>Live meeting capture.</b><p>Zoom, Teams and Meet capture has had one live test. Run a dry run before relying on it. Remote participants appear as one speaker.</p></div></div>
+            <div class="limit"><span class="chip chip--open">Open</span><div><b>Live meeting capture.</b><p>Zoom, Teams and Meet capture has had one live test. Run a dry run before relying on it. Remote participants are numbered by voice, not named.</p></div></div>
+            <div class="limit"><span class="chip chip--open">Open</span><div><b>Console policy is not applied on the Mac yet.</b><p>The review timeout, consent notice and timeout behavior set in the admin console are stored, but the Mac app uses its own Settings for each of them. Set them on each Mac, through MDM or the offline kit, until the app enforces the console values.</p></div></div>
+            <div class="limit"><span class="chip chip--open">Open</span><div><b>Sleep during a call or while the memo is drafted.</b><p>The vault is shredded and verified. The session process does not report that or exit until the user ends the call or stops the meeting, and its receipt then says the shred was not verified. Sleep during review works as described above.</p></div></div>
             <div class="limit"><span class="chip chip--open">Open</span><div><b>Screen-share cloak.</b><p>The Review window opts out of screen sharing at the window level. That is tested on a real window, but not yet against Zoom or QuickTime capture.</p></div></div>
             <div class="limit"><span class="chip chip--open">Open</span><div><b>Key hand-off across app updates.</b><p>A Secure Enclave key created by one build was loaded and used by a different build, and by builds signed with the same or a different self-signed certificate, so enrollment should survive an update. Tested on one Mac (macOS 27.2). Not tested with a Developer ID certificate, other macOS versions or a clean Mac.</p></div></div>
             <div class="limit"><span class="chip chip--open">Open</span><div><b>Microphone permission after an update.</b><p>With ad-hoc signing macOS asks for the microphone again after every update; a stable self-signed certificate kept the permission in our test. Gatekeeper treats a downloaded self-signed app exactly like an ad-hoc one, so first-launch behavior does not change. Pre-approval through MDM is not yet tested.</p></div></div>
@@ -377,6 +384,8 @@
             <div class="limit"><span class="chip chip--open">Open</span><div><b>Identity providers, live.</b><p>SCIM is tested with Okta- and Entra-shaped requests, not yet against a live tenant. It syncs users, not groups.</p></div></div>
             <div class="limit"><span class="chip chip--open">Open</span><div><b>Revocation cannot reach into the Mac.</b><p>A revoked Mac loses all server access, but memos already stored on it stay readable by that Mac until its keys are deleted. The same Mac can be enrolled again afterwards with a new key; we found that it could not be until 14 November and fixed it that day.</p></div></div>
             <div class="limit"><span class="chip chip--open">Open</span><div><b>The audit chain shows tampering; it does not prevent it.</b><p>Someone with full write access to the database could rebuild the whole chain. Export the log regularly and keep its latest hash somewhere they cannot reach.</p></div></div>
+            <div class="limit"><span class="chip chip--open">Open</span><div><b>Actions taken by Macs are not in the audit log.</b><p>Device enrollments and Deal Room member changes made by a Mac are recorded in their own tables, not in the hash-chained log. Enrollments show in the console&rsquo;s device list.</p></div></div>
+            <div class="limit"><span class="chip chip--open">Open</span><div><b>Member keys for shared code names come from the server.</b><p>Macs trust the server&rsquo;s list of member keys and do not compare fingerprints. Someone who controls the control plane could add a key of their own the next time a member re-keys the workspace.</p></div></div>
             <div class="limit"><span class="chip chip--open">Open</span><div><b>PDF signer trust.</b><p>The PAdES signature is validated with pyHanko, not yet opened in Acrobat. With a self-signed certificate, readers show it as valid once they trust that certificate. A green check by default needs an Adobe-trusted certificate, which we have not bought.</p></div></div>
             <div class="limit"><span class="chip chip--open">Open</span><div><b>Continuous PostgreSQL testing.</b><p>The suite passes on PostgreSQL 16 locally. A CI job that runs it on every change is still to do.</p></div></div>
             <div class="limit"><span class="chip chip--open">Open</span><div><b>Only failed credentials are rate-limited.</b><p>Successful traffic is not throttled by the server. Set a request limit at your proxy as well.</p></div></div>
